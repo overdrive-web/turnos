@@ -1,0 +1,30 @@
+<div class="content-container">
+    <h2>Gestión de Colaboradores</h2>
+    <p>Agrega o edita los nombres de los colaboradores.</p>
+    <div class="form-container">
+        <form id="collaboratorForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="collaboratorName">Nombre del Colaborador</label>
+                    <input type="text" id="collaboratorName" required placeholder="Ej: Juan Pérez">
+                </div>
+                <div class="form-buttons">
+                    <button type="submit" id="addCollaborator">Agregar</button>
+                    <button type="button" id="clearForm">Limpiar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="table-container">
+        <h3>Colaboradores Registrados</h3>
+        <table id="collaboratorTable">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>

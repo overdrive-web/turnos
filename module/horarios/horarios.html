@@ -1,0 +1,58 @@
+<div class="content-container">
+    <h2>Gestión de Horarios</h2>
+    <p>Administra los horarios de trabajo, incluyendo entrada, salida, colación y total de horas trabajadas.</p>
+    <div class="form-container">
+        <form id="scheduleForm">
+            <input type="hidden" id="scheduleId">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="reference">Referencia</label>
+                    <input type="text" id="reference" required placeholder="Ej: HORARIO-001">
+                </div>
+                <div class="form-group">
+                    <label for="description">Descripción</label>
+                    <input type="text" id="description" required placeholder="Ej: Turno Matutino">
+                </div>
+                <div class="form-group">
+                    <label for="startTime">Entrada</label>
+                    <input type="time" id="startTime" required>
+                </div>
+                <div class="form-group">
+                    <label for="endTime">Salida</label>
+                    <input type="time" id="endTime" required>
+                </div>
+                <div class="form-group">
+                    <label for="breakTime">Colación (min)</label>
+                    <input type="number" id="breakTime" required min="0" placeholder="Ej: 60">
+                </div>
+                <div class="form-group">
+                    <label for="totalHours">Horas Trabajadas</label>
+                    <input type="text" id="totalHours" readonly>
+                </div>
+                <div class="form-buttons">
+                    <button type="submit" id="saveSchedule">Guardar</button>
+                    <button type="button" id="clearForm">Limpiar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="table-container">
+        <h3>Horarios Registrados</h3>
+        <table id="scheduleTable">
+            <thead>
+                <tr>
+                    <th>Referencia</th>
+                    <th>Descripción</th>
+                    <th>Entrada</th>
+                    <th>Salida</th>
+                    <th>Colación (min)</th>
+                    <th>Horas Totales</th>
+                    <th>Horas Trabajadas</th>
+                    <th>Días Libres (L)</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>

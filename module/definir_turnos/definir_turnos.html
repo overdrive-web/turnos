@@ -1,0 +1,68 @@
+<div class="content-container">
+    <h2>Definición de Turnos</h2>
+    <p>Configura los patrones de turnos para cada área seleccionando horarios disponibles.</p>
+    <div class="form-container">
+        <form id="turnDefinitionForm">
+            <input type="hidden" id="turnId">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="areaSelect">Área</label>
+                    <select id="areaSelect" required>
+                        <option value="" disabled selected>Seleccionar área</option>
+                        <option value="Mater / Upc">Mater / Upc</option>
+                        <option value="Urgencias">Urgencias</option>
+                        <option value="MQ / CEM 1 / CEM 2 / ADM">MQ / CEM 1 / CEM 2 / ADM</option>
+                        <option value="Espacio Comunes">Espacio Comunes</option>
+                        <option value="Traslado">Traslado</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="turnNumber">Número de Turno</label>
+                    <select id="turnNumber" required>
+                        <option value="" disabled selected>Seleccionar turno</option>
+                        <option value="1">Turno 1</option>
+                        <option value="2">Turno 2</option>
+                        <option value="3">Turno 3</option>
+                        <option value="4">Turno 4</option>
+                        <option value="5">Turno 5</option>
+                        <option value="6">Turno 6</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="turnPatternSelect">Seleccionar Horario</label>
+                    <select id="turnPatternSelect">
+                        <option value="" disabled selected>Selecciona un horario</option>
+                    </select>
+                    <button type="button" id="addToPattern">Agregar al Patrón</button>
+                </div>
+                <div class="form-group">
+                    <label for="turnPattern">Patrón de Turno</label>
+                    <input type="text" id="turnPattern" readonly placeholder="Ejemplo: HORARIO-001-HORARIO-002-L-L">
+                </div>
+                <div class="form-group">
+                    <label for="observation">Observación</label>
+                    <input type="text" id="observation" placeholder="Ejemplo: Turno 2x2">
+                </div>
+                <div class="form-buttons">
+                    <button type="submit" id="saveTurn">Guardar Turno</button>
+                    <button type="button" id="clearForm">Limpiar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="table-container">
+        <h3>Turnos Definidos</h3>
+        <table id="definedTurnsTable">
+            <thead>
+                <tr>
+                    <th>Área</th>
+                    <th>Turno</th>
+                    <th>Patrón</th>
+                    <th>Observación</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
