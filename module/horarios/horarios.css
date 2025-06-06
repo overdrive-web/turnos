@@ -211,17 +211,68 @@ body.dark-mode td button.delete:hover {
     background-color: #e53e3e;
 }
 
-@media (max-width: 768px) {
+@media (min-width: 769px) and (max-width: 1440px) {
+    .content-container {
+        padding: 25px;
+        border-radius: 10px;
+    }
+    h2 {
+        font-size: 24px;
+        margin-bottom: 12px;
+    }
+    h3 {
+        font-size: 18px;
+        margin-top: 25px;
+        margin-bottom: 12px;
+    }
+    p {
+        font-size: 15px;
+        margin-bottom: 25px;
+    }
+    .form-container {
+        margin-bottom: 25px;
+    }
     .form-row {
-        flex-direction: column;
-        align-items: stretch;
+        gap: 15px;
     }
-
     .form-group {
-        min-width: 100%;
+        min-width: 180px;
     }
-
+    .form-group label {
+        font-size: 15px;
+        margin-bottom: 6px;
+    }
+    .form-group input {
+        padding: 10px;
+        font-size: 15px;
+        border-radius: 5px;
+    }
+    .form-group input[readonly] {
+        font-size: 15px;
+    }
     .form-buttons {
-        justify-content: center;
+        gap: 15px;
+    }
+    button {
+        padding: 10px 20px;
+        font-size: 15px;
+        border-radius: 5px;
+    }
+    .table-container {
+        margin-top: 15px;
+    }
+    table {
+        margin-top: 15px;
+    }
+    th, td {
+        padding: 12px;
+        font-size: 14px;
+    }
+    th {
+        font-size: 15px;
+    }
+    td button {
+        padding: 8px 14px;
+        font-size: 13px;
     }
 }
