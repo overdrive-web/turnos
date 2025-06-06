@@ -106,19 +106,27 @@ body.dark-mode button:hover {
   background-color: #4299e1;
 }
 
-#clearForm, #printTable, #exportExcel {
+#clearForm,
+#printTable,
+#exportExcel {
   background-color: #6c757d;
 }
 
-#clearForm:hover, #printTable:hover, #exportExcel:hover {
+#clearForm:hover,
+#printTable:hover,
+#exportExcel:hover {
   background-color: #5a6268;
 }
 
-body.dark-mode #clearForm, body.dark-mode #printTable, body.dark-mode #exportExcel {
+body.dark-mode #clearForm,
+body.dark-mode #printTable,
+body.dark-mode #exportExcel {
   background-color: #4a5568;
 }
 
-body.dark-mode #clearForm:hover, body.dark-mode #printTable:hover, body.dark-mode #exportExcel:hover {
+body.dark-mode #clearForm:hover,
+body.dark-mode #printTable:hover,
+body.dark-mode #exportExcel:hover {
   background-color: #3c4b64;
 }
 
@@ -142,7 +150,7 @@ th, td {
 
 body.dark-mode th,
 body.dark-mode td {
-  border: 1px solid #4a5568;
+  border-color: #4a5568;
 }
 
 th:first-child,
@@ -235,6 +243,24 @@ body.dark-mode .delete-icon:hover {
   color: #e53e3e;
 }
 
+.edit-icon {
+  cursor: pointer;
+  color: #38a169;
+  margin-left: 10px;
+}
+
+body.dark-mode .edit-icon {
+  color: #48bb78;
+}
+
+.edit-icon:hover {
+  color: #2f855a;
+}
+
+body.dark-mode .edit-icon:hover {
+  color: #38a169;
+}
+
 #dayNames th {
   background-color: #f7f9fc;
   color: #2d3748;
@@ -294,7 +320,9 @@ body.dark-mode .area-title {
   padding: 20px;
   border-radius: 8px;
   width: 90%;
-  max-width: 400px;
+  max-width: 800px;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 body.dark-mode .modal-content {
@@ -332,28 +360,34 @@ body.dark-mode .modal-content .form-group label {
 }
 
 #confirmSelection,
-#cancelSelection {
+#cancelSelection,
+#confirmEdit,
+#cancelEdit {
   padding: 10px 20px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
 }
 
-#confirmSelection {
+#confirmSelection,
+#confirmEdit {
   background-color: #3182ce;
   color: white;
 }
 
-#confirmSelection:hover {
+#confirmSelection:hover,
+#confirmEdit:hover {
   background-color: #2b6cb0;
 }
 
-#cancelSelection {
+#cancelSelection,
+#cancelEdit {
   background-color: #6c757d;
   color: white;
 }
 
-#cancelSelection:hover {
+#cancelSelection:hover,
+#cancelEdit:hover {
   background-color: #5c636a;
 }
 
@@ -361,7 +395,9 @@ body.dark-mode .modal-content .form-group label {
 #areaSelect,
 #turnSelect,
 #startDateSelect,
-#patternStartSelect {
+#patternStartSelect,
+#editScheduleSelect,
+.assignment-select {
   width: 100%;
   padding: 8px;
   border: 1px solid #e2e8f0;
@@ -372,153 +408,143 @@ body.dark-mode #collaboratorSelect,
 body.dark-mode #areaSelect,
 body.dark-mode #turnSelect,
 body.dark-mode #startDateSelect,
-body.dark-mode #patternStartSelect {
+body.dark-mode #patternStartSelect,
+body.dark-mode #editScheduleSelect,
+body.dark-mode .assignment-select {
+  background-color: #3c4b64;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  padding: 10px;
+}
+
+.calendar-day-header {
+  font-weight: bold;
+  text-align: center;
+  padding: 5px;
+  background-color: #f7f9fc;
+  color: #2d3748;
+}
+
+body.dark-mode .calendar-day-header {
   background-color: #3c4b64;
   color: #e2e8f0;
 }
 
-.spinner-container {
-  display: none;
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: rgba(255, 255, 255, 0.9);
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
+.calendar-day {
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 80px;
 }
 
-body.dark-mode .spinner-container {
-  background-color: rgba(45, 55, 72, 0.9);
+body.dark-mode .calendar-day {
+  border-color: #4a5568;
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+.calendar-day.empty {
+  background-color: #f7f9fc;
+}
+
+body.dark-mode .calendar-day.empty {
+  background-color: #3c4b64;
+}
+
+.calendar-day span {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.calendar-day select {
+  width: 100%;
+  padding: 5px;
+  font-size: 12px;
+}
+
+.sunday {
+  background-color: #ffe6e6;
+}
+
+body.dark-mode .sunday {
+  background-color: #4b1c1c;
+}
+
+.saturday {
+  background-color: #e6f0ff;
+}
+
+body.dark-mode .saturday {
+  background-color: #1c2b4b;
+}
+
+.spinner-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+body.dark-mode .spinner-modal {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.spinner-modal-content {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-width: 150px;
+  min-height: 120px;
+}
+
+body.dark-mode .spinner-modal-content {
+  background-color: #2d3748;
+}
+
+.spinner-modal-content p {
+  margin-top: 10px;
+  color: #2d3748;
+  font-size: 14px;
+  text-align: center;
+}
+
+body.dark-mode .spinner-modal-content p {
+  color: #e2e8f0;
 }
 
 .spinner {
-  border: 4px solid #f3f3f3;
-  border-top: 3px solid #3498db;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #3182ce;
   border-radius: 50%;
   width: 40px;
   height: 40px;
   animation: spin 1s linear infinite;
-  margin: 0 auto;
 }
 
 body.dark-mode .spinner {
-  border-top-color: #3498db;
+  border-top-color: #63b3ed;
 }
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-}
-
-@media (min-width: 769px) and (max-width: 1440px) {
-    .content-container {
-        padding: 25px;
-        border-radius: 10px;
-    }
-    h2 {
-        font-size: 24px;
-        margin-bottom: 12px;
-    }
-    h3 {
-        font-size: 18px;
-        margin-top: 25px;
-        margin-bottom: 12px;
-    }
-    p {
-        font-size: 15px;
-        margin-bottom: 25px;
-    }
-    .form-container {
-        margin-bottom: 25px;
-    }
-    .form-row {
-        gap: 25px;
-    }
-    .form-group {
-        min-width: 200px;
-    }
-    .form-group label {
-        font-size: 15px;
-        margin-bottom: 6px;
-    }
-    .form-group input,
-    .form-group select {
-        padding: 10px;
-        font-size: 15px;
-        border-radius: 5px;
-    }
-    .form-buttons {
-        gap: 15px;
-    }
-    button {
-        padding: 10px 20px;
-        font-size: 15px;
-        border-radius: 5px;
-    }
-    .table-container {
-        margin-top: 15px;
-        max-height: 65vh;
-    }
-    table {
-        margin-top: 15px;
-    }
-    th, td {
-        padding: 12px;
-        font-size: 14px;
-    }
-    th {
-        font-size: 15px;
-    }
-    th:first-child,
-    td:first-child {
-        width: 220px;
-    }
-    #dayNames th {
-        font-size: 11px;
-        padding: 6px;
-    }
-    .area-title {
-        font-size: 15px;
-        padding-left: 12px;
-    }
-    .modal-content {
-        max-width: 450px;
-        padding: 25px;
-    }
-    .modal-content h3 {
-        font-size: 18px;
-        margin-bottom: 25px;
-    }
-    .modal-content .form-group {
-        margin-bottom: 20px;
-    }
-    .modal-content .form-group label {
-        font-size: 15px;
-    }
-    .modal-buttons {
-        gap: 15px;
-    }
-    #confirmSelection,
-    #cancelSelection {
-        padding: 12px 24px;
-        font-size: 15px;
-    }
-    #collaboratorSelect,
-    #areaSelect,
-    #turnSelect,
-    #startDateSelect,
-    #patternStartSelect {
-        padding: 10px;
-        font-size: 15px;
-    }
-    .spinner-container {
-        padding: 25px;
-    }
-    .spinner {
-        width: 48px;
-        height: 48px;
-    }
 }
