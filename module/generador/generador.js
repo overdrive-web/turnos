@@ -15,15 +15,6 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 export function initGenerador() {
-    console.log('Inicializando generador...');
-
-    // Verificar si los elementos principales existen en el DOM
-    const contentContainer = document.querySelector('.content-container');
-    if (!contentContainer) {
-        console.error('No se encontró el contenedor .content-container en el DOM.');
-        return;
-    }
-
     const turnForm = document.getElementById('turnForm');
     const monthSelect = document.getElementById('month');
     const yearSelect = document.getElementById('year');
@@ -46,17 +37,6 @@ export function initGenerador() {
     const confirmEdit = document.getElementById('confirmEdit');
     const cancelEdit = document.getElementById('cancelEdit');
     const loadingSpinner = document.getElementById('loadingSpinner');
-
-    // Verificar que los elementos clave existan
-    if (!editModal) {
-        console.error('No se encontró el elemento #editModal en el DOM.');
-        return;
-    }
-    const editModalTitle = document.getElementById('editModalTitle');
-    if (!editModalTitle) {
-        console.error('No se encontró el elemento #editModalTitle en el DOM.');
-        return;
-    }
 
     let collaborators = [];
     let turnPatterns = [];
@@ -85,7 +65,6 @@ export function initGenerador() {
             querySnapshot.forEach(doc => {
                 collaborators.push({ id: doc.id, name: doc.data().name });
             });
-            console.log('Colaboradores cargados:', collaborators);
         } catch (error) {
             console.error('Error loading collaborators:', error);
             alert('Error al cargar colaboradores: ' + error.message);
@@ -106,7 +85,6 @@ export function initGenerador() {
                     observation: data.observation || ''
                 });
             });
-            console.log('Patrones de turnos cargados:', turnPatterns);
         } catch (error) {
             console.error('Error loading turn patterns:', error);
             alert('Error al cargar patrones de turnos: ' + error.message);
@@ -355,7 +333,6 @@ export function initGenerador() {
             }
         });
 
-        // Vincular eventos a los íconos de "add"
         document.querySelectorAll('.add-icon').forEach(icon => {
             icon.addEventListener('click', async () => {
                 currentRow = icon.closest('tr');
@@ -420,21 +397,8 @@ export function initGenerador() {
             });
         });
 
-        // Vincular eventos a los íconos de "edit"
         document.querySelectorAll('.edit-icon').forEach(icon => {
             icon.addEventListener('click', async () => {
-                console.log('Clic en edit-icon, verificando DOM...');
-                const editModal = document.getElementById('editModal');
-                const editModalTitle = document.getElementById('editModalTitle');
-                console.log('Elemento editModal:', editModal);
-                console.log('Elemento editModalTitle:', editModalTitle);
-
-                if (!editModal || !editModalTitle) {
-                    console.error('El elemento con ID "editModal" o "editModalTitle" no se encontró en el DOM.');
-                    alert('Error: No se encontró el modal de edición o su título.');
-                    return;
-                }
-
                 editingRowId = icon.dataset.rowId;
                 const month = parseInt(icon.dataset.month);
                 const year = parseInt(icon.dataset.year);
@@ -442,6 +406,14 @@ export function initGenerador() {
                 if (!data) {
                     console.error('No data found for rowId:', editingRowId);
                     alert('Error: No se encontraron datos para este colaborador.');
+                    return;
+                }
+
+                // Verificar si editModalTitle existe
+                const editModalTitle = document.getElementById('editModalTitle');
+                if (!editModalTitle) {
+                    console.error('El elemento con ID "editModalTitle" no se encontró en el DOM.');
+                    alert('Error: No se encontró el título del modal de edición.');
                     return;
                 }
 
@@ -1024,79 +996,16 @@ export function initGenerador() {
         });
     }
 
-    // Limpiar eventos al salir del módulo
     window.addEventListener('moduleCleanup', () => {
-        console.log('Limpiando eventos del módulo generador...');
-        if (turnForm) {
-            turnForm.removeEventListener('submit', null);
-            const newTurnForm = turnForm.cloneNode(true);
-            turnForm.replaceWith(newTurnForm);
-        }
-        if (monthSelect) {
-            monthSelect.removeEventListener('change', null);
-            const newMonthSelect = monthSelect.cloneNode(true);
-            monthSelect.replaceWith(newMonthSelect);
-        }
-        if (yearSelect) {
-            yearSelect.removeEventListener('change', null);
-            const newYearSelect = yearSelect.cloneNode(true);
-            yearSelect.replaceWith(newYearSelect);
-        }
-        if (clearForm) {
-            clearForm.removeEventListener('click', null);
-            const newClearForm = clearForm.cloneNode(true);
-            clearForm.replaceWith(newClearForm);
-        }
-        if (printTable) {
-            printTable.removeEventListener('click', null);
-            const newPrintTable = printTable.cloneNode(true);
-            printTable.replaceWith(newPrintTable);
-        }
-        if (exportExcel) {
-            exportExcel.removeEventListener('click', null);
-            const newExportExcel = exportExcel.cloneNode(true);
-            exportExcel.replaceWith(newExportExcel);
-        }
-        if (tableBody) {
-            tableBody.removeEventListener('click', null);
-            const newTableBody = tableBody.cloneNode(true);
-            tableBody.replaceWith(newTableBody);
-        }
-        if (confirmEdit) {
-            confirmEdit.removeEventListener('click', null);
-            const newConfirmEdit = confirmEdit.cloneNode(true);
-            confirmEdit.replaceWith(newConfirmEdit);
-        }
-        if (cancelEdit) {
-            cancelEdit.removeEventListener('click', null);
-            const newCancelEdit = cancelEdit.cloneNode(true);
-            cancelEdit.replaceWith(newCancelEdit);
-        }
-        if (confirmSelection) {
-            confirmSelection.removeEventListener('click', null);
-            const newConfirmSelection = confirmSelection.cloneNode(true);
-            confirmSelection.replaceWith(newConfirmSelection);
-        }
-        if (cancelSelection) {
-            cancelSelection.removeEventListener('click', null);
-            const newCancelSelection = cancelSelection.cloneNode(true);
-            cancelSelection.replaceWith(newCancelSelection);
-        }
-        // Limpiar eventos dinámicos clonando los elementos
-        document.querySelectorAll('.add-icon').forEach(icon => {
-            const newIcon = icon.cloneNode(true);
-            icon.replaceWith(newIcon);
-        });
-        document.querySelectorAll('.edit-icon').forEach(icon => {
-            const newIcon = icon.cloneNode(true);
-            icon.replaceWith(newIcon);
-        });
-        document.querySelectorAll('.delete-icon').forEach(icon => {
-            const newIcon = icon.cloneNode(true);
-            icon.replaceWith(newIcon);
-        });
+        const turnForm = document.getElementById('turnForm');
+        const monthSelect = document.getElementById('month');
+        const yearSelect = document.getElementById('year');
+        const clearForm = document.getElementById('clearForm');
+        if (turnForm) turnForm.removeEventListener('submit', null);
+        if (monthSelect) monthSelect.removeEventListener('change', null);
+        if (yearSelect) yearSelect.removeEventListener('change', null);
+        if (clearForm) clearForm.removeEventListener('click', null);
     });
 }
 
-// Ejecutar initGenerador inmediatamente, ya que main.js garantiza que el DOM está listo
 initGenerador();
