@@ -24,35 +24,38 @@ export function initGenerador() {
     const tableHead = document.querySelector('#turnTable thead');
     const tableBody = document.querySelector('#turnTable tbody');
     const modal = document.getElementById('modal');
+    const editModal = document.getElementById('editModal');
     const collaboratorSelect = document.getElementById('collaboratorSelect');
     const areaSelect = document.getElementById('areaSelect');
     const turnSelect = document.getElementById('turnSelect');
     const startDateSelect = document.getElementById('startDateSelect');
     const patternStartSelect = document.getElementById('patternStartSelect');
+    const editScheduleSelect = document.getElementById('editScheduleSelect');
+    const calendar = document.getElementById('calendar');
     const confirmSelection = document.getElementById('confirmSelection');
     const cancelSelection = document.getElementById('cancelSelection');
+    const confirmEdit = document.getElementById('confirmEdit');
+    const cancelEdit = document.getElementById('cancelEdit');
     const loadingSpinner = document.getElementById('loadingSpinner');
 
     let collaborators = [];
     let turnPatterns = [];
+    let schedules = [];
     let assignedCollaborators = new Map();
     let currentRow = null;
+    let editingRowId = null;
+    let editedAssignments = [];
 
     function showSpinner() {
-        if (loadingSpinner) {
-            loadingSpinner.style.display = 'block';
-        }
+        if (loadingSpinner) loadingSpinner.style.display = 'block';
     }
 
     function hideSpinner() {
-        if (loadingSpinner) {
-            loadingSpinner.style.display = 'none';
-        }
+        if (loadingSpinner) loadingSpinner.style.display = 'none';
     }
 
-    if (modal) {
-        modal.style.display = 'none';
-    }
+    if (modal) modal.style.display = 'none';
+    if (editModal) editModal.style.display = 'none';
     hideSpinner();
 
     async function loadCollaborators() {
@@ -62,9 +65,8 @@ export function initGenerador() {
             querySnapshot.forEach(doc => {
                 collaborators.push({ id: doc.id, name: doc.data().name });
             });
-            console.log('Colaboradores cargados:', collaborators);
         } catch (error) {
-            console.error('Error al cargar colaboradores:', error);
+            console.error('Error loading collaborators:', error);
             alert('Error al cargar colaboradores: ' + error.message);
         }
     }
@@ -83,10 +85,26 @@ export function initGenerador() {
                     observation: data.observation || ''
                 });
             });
-            console.log('Patrones de turnos cargados:', turnPatterns);
         } catch (error) {
-            console.error('Error al cargar patrones de turnos:', error);
+            console.error('Error loading turn patterns:', error);
             alert('Error al cargar patrones de turnos: ' + error.message);
+        }
+    }
+
+    async function loadSchedules() {
+        try {
+            const querySnapshot = await getDocs(collection(db, 'schedules'));
+            schedules = [];
+            querySnapshot.forEach(doc => {
+                schedules.push({
+                    id: doc.id,
+                    reference: doc.data().reference,
+                    description: doc.data().description
+                });
+            });
+        } catch (error) {
+            console.error('Error loading schedules:', error);
+            alert('Error al cargar horarios: ' + error.message);
         }
     }
 
@@ -95,7 +113,7 @@ export function initGenerador() {
         const currentDateValue = currentYear * 12 + currentMonth;
 
         for (let year = currentYear; year >= 2025; year--) {
-            const startMonth = (year === currentYear) ? currentMonth : 12;
+            const startMonth = (year === currentYear) ? currentMonth - 1 : 12;
             for (let month = startMonth; month >= 1; month--) {
                 const monthYear = `${year}-${month.toString().padStart(2, '0')}`;
                 const dateValue = year * 12 + month;
@@ -107,115 +125,76 @@ export function initGenerador() {
                         querySnapshot.forEach(doc => {
                             assignments.set(doc.id, doc.data());
                         });
-                        console.log(`Asignaciones encontradas para ${monthYear}:`, assignments);
-                        return assignments;
+                        return { assignments, lastMonth: month, lastYear: year };
                     }
                 } catch (error) {
-                    console.error(`Error al verificar asignaciones para ${monthYear}:`, error);
+                    console.error(`Error checking assignments for ${monthYear}:`, error);
                 }
             }
         }
-        console.log('No se encontraron asignaciones previas, retornando mapa vacío');
-        return assignments;
+        return { assignments, lastMonth: null, lastYear: null };
     }
 
-    async function loadAssignments(month, year) {
+    async function loadAssignments(month, year, generateNew = false) {
         try {
             const monthYear = `${year}-${month.toString().padStart(2, '0')}`;
-            const querySnapshot = await getDocs(collection(db, `turns/${monthYear}/days`));
+            const daysInMonth = getDaysInMonth(month, year);
             assignedCollaborators.clear();
-            if (!querySnapshot.empty) {
+
+            const querySnapshot = await getDocs(collection(db, `turns/${monthYear}/days`));
+            if (!querySnapshot.empty && !generateNew) {
                 querySnapshot.forEach(doc => {
                     assignedCollaborators.set(doc.id, doc.data());
                 });
-                console.log(`Asignaciones cargadas para ${monthYear}:`, assignedCollaborators);
-            } else {
-                assignedCollaborators = await getLastModifiedMonthAssignments(year, month);
-                console.log(`Asignaciones cargadas desde último mes para ${monthYear}:`, assignedCollaborators);
-            }
-            renderTableWithAssignments(month, year);
-        } catch (error) {
-            console.error('Error al cargar asignaciones:', error);
-            renderTableWithAssignments(month, year);
-        }
-    }
+            } else if (generateNew) {
+                const { assignments, lastMonth, lastYear } = await getLastModifiedMonthAssignments(year, month);
+                if (assignments.size > 0 && lastMonth && lastYear) {
+                    for (const [rowId, data] of assignments) {
+                        const startDateObj = new Date(data.startDate);
+                        const futureStartDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+                        const futureDateObj = new Date(futureStartDate);
+                        const daysSinceStart = Math.floor(
+                            (futureDateObj - startDateObj) / (1000 * 60 * 60 * 24)
+                        );
 
-    async function updateFutureMonths(month, year, deletedRowId = null) {
-        showSpinner();
-        try {
-            if (assignedCollaborators.size === 0 && !deletedRowId) {
-                console.log('No hay asignaciones para propagar.');
-                return;
-            }
-
-            const currentMonthYearValue = year * 12 + month;
-            const maxYear = 2027;
-
-            for (let y = year; y <= maxYear; y++) {
-                const startMonth = (y === year) ? month + 1 : 1;
-                const endMonth = 12;
-                for (let m = startMonth; m <= endMonth; m++) {
-                    const monthYear = `${y}-${m.toString().padStart(2, '0')}`;
-                    const monthYearValue = y * 12 + m;
-                    if (monthYearValue <= currentMonthYearValue) continue;
-
-                    try {
-                        const querySnapshot = await getDocs(collection(db, `turns/${monthYear}/days`));
-                        const existingDocs = new Set(querySnapshot.docs.map(doc => doc.id));
-
-                        if (deletedRowId) {
-                            if (existingDocs.has(deletedRowId)) {
-                                await deleteDoc(doc(db, `turns/${monthYear}/days`, deletedRowId));
-                                console.log(`Eliminado documento para rowId ${deletedRowId} en ${monthYear}`);
-                            }
-                        } else {
-                            for (const [rowId, data] of assignedCollaborators) {
-                                const daysInFutureMonth = getDaysInMonth(m, y);
-                                const futureStartDate = `${y}-${m.toString().padStart(2, '0')}-01`;
-                                const startDateObj = new Date(data.startDate);
-                                const futureDateObj = new Date(futureStartDate);
-                                const daysSinceStart = Math.floor(
-                                    (futureDateObj - startDateObj) / (1000 * 60 * 60 * 24)
-                                );
-
-                                const patternArray = data.pattern.split('-');
-                                let patternStartIndex = (data.patternStartIndex + daysSinceStart) % patternArray.length;
-                                if (patternStartIndex < 0) {
-                                    patternStartIndex += patternArray.length; 
-                                }
-
-                                const dailyAssignments = calculateDailyAssignments(
-                                    data.startDate,
-                                    data.pattern,
-                                    patternStartIndex,
-                                    daysInFutureMonth,
-                                    y,
-                                    m
-                                );
-
-                                await setDoc(doc(db, `turns/${monthYear}/days`, rowId), {
-                                    collaborator: data.collaborator,
-                                    area: data.area,
-                                    turnId: data.turnId,
-                                    turnNumber: data.turnNumber,
-                                    pattern: data.pattern,
-                                    observation: data.observation,
-                                    startDate: data.startDate,
-                                    patternStartIndex: patternStartIndex,
-                                    dailyAssignments: dailyAssignments,
-                                    timestamp: new Date().toISOString()
-                                });
-                                console.log(`Asignación guardada para rowId ${rowId} en ${monthYear}`);
-                            }
+                        const patternArray = data.pattern.split('-');
+                        let patternStartIndex = (data.patternStartIndex + daysSinceStart) % patternArray.length;
+                        if (patternStartIndex < 0) {
+                            patternStartIndex += patternArray.length;
                         }
-                        console.log(`Asignaciones propagadas a ${monthYear}`);
-                    } catch (error) {
-                        console.error(`Error al propagar o eliminar asignaciones en ${monthYear}:`, error);
+
+                        const dailyAssignments = calculateDailyAssignments(
+                            data.startDate,
+                            data.pattern,
+                            patternStartIndex,
+                            daysInMonth,
+                            year,
+                            month
+                        );
+
+                        const newData = {
+                            collaborator: data.collaborator,
+                            area: data.area,
+                            turnId: data.turnId,
+                            turnNumber: data.turnNumber,
+                            pattern: data.pattern,
+                            observation: data.observation,
+                            startDate: data.startDate,
+                            patternStartIndex: patternStartIndex,
+                            dailyAssignments: dailyAssignments,
+                            timestamp: new Date().toISOString()
+                        };
+
+                        assignedCollaborators.set(rowId, newData);
+                        await setDoc(doc(db, `turns/${monthYear}/days`, rowId), newData);
                     }
                 }
             }
-        } finally {
-            hideSpinner();
+
+            renderTableWithAssignments(month, year);
+        } catch (error) {
+            console.error('Error loading assignments:', error);
+            renderTableWithAssignments(month, year);
         }
     }
 
@@ -238,7 +217,6 @@ export function initGenerador() {
                 assignments.push(patternArray[patternIndex % patternArray.length]);
                 patternIndex++;
             }
-            console.log(`Día ${day}: Asignación = ${assignments[day-1]}, patternIndex = ${patternIndex}`);
         }
         return assignments;
     }
@@ -327,13 +305,14 @@ export function initGenerador() {
         assignedCollaborators.forEach((data, rowId) => {
             const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
             if (!row) {
-                console.warn(`Fila no encontrada para rowId: ${rowId}`, data);
+                console.warn(`Row not found for rowId: ${rowId}`, data);
                 return;
             }
             const firstCell = row.querySelector('td:first-child');
             if (firstCell) {
                 firstCell.innerHTML = `
                     ${data.collaborator.name}
+                    <i class="fas fa-edit edit-icon" data-row-id="${rowId}" data-month="${month}" data-year="${year}"></i>
                     <i class="fas fa-trash delete-icon" data-row-id="${rowId}" data-month="${month}" data-year="${year}"></i>
                 `;
                 const addIcon = row.querySelector('.add-icon');
@@ -349,7 +328,7 @@ export function initGenerador() {
                     });
                 }
             } else {
-                console.warn(`No se encontró td:first-child para rowId: ${rowId}`);
+                console.warn(`No td:first-child found for rowId: ${rowId}`);
             }
         });
 
@@ -357,11 +336,10 @@ export function initGenerador() {
             icon.addEventListener('click', async () => {
                 currentRow = icon.closest('tr');
                 if (!currentRow) {
-                    console.error('No se pudo encontrar la fila activa');
+                    console.error('Could not find active row');
                     alert('Error: No se pudo identificar la fila seleccionada.');
                     return;
                 }
-                console.log('Fila seleccionada:', currentRow.dataset.rowId);
                 const availableCollaborators = collaborators.filter(c => 
                     !Array.from(assignedCollaborators.values()).some(ac => ac.collaborator.id === c.id)
                 );
@@ -417,6 +395,76 @@ export function initGenerador() {
                 modal.style.display = 'flex';
             });
         });
+
+        document.querySelectorAll('.edit-icon').forEach(icon => {
+            icon.addEventListener('click', async () => {
+                editingRowId = icon.dataset.rowId;
+                const month = parseInt(icon.dataset.month);
+                const year = parseInt(icon.dataset.year);
+                const data = assignedCollaborators.get(editingRowId);
+                if (!data) {
+                    console.error('No data found for rowId:', editingRowId);
+                    alert('Error: No se encontraron datos para este colaborador.');
+                    return;
+                }
+
+                showSpinner();
+                try {
+                    await loadSchedules();
+                    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                    document.getElementById('editModalTitle').textContent = `Editar Turnos: ${data.collaborator.name} - ${monthNames[month - 1]} ${year}`;
+                    editedAssignments = [...(data.dailyAssignments || Array(getDaysInMonth(month, year)).fill(''))];
+
+                    calendar.innerHTML = '';
+                    const daysInMonth = getDaysInMonth(month, year);
+                    const firstDay = new Date(year, month - 1, 1).getDay();
+                    const calendarGrid = document.createElement('div');
+                    calendarGrid.classList.add('calendar-grid');
+
+                    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+                    dayNames.forEach(day => {
+                        const dayHeader = document.createElement('div');
+                        dayHeader.classList.add('calendar-day-header');
+                        dayHeader.textContent = day;
+                        calendarGrid.appendChild(dayHeader);
+                    });
+
+                    for (let i = 0; i < firstDay; i++) {
+                        const emptyCell = document.createElement('div');
+                        emptyCell.classList.add('calendar-day', 'empty');
+                        calendarGrid.appendChild(emptyCell);
+                    }
+
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const dayCell = document.createElement('div');
+                        dayCell.classList.add('calendar-day');
+                        const date = new Date(year, month - 1, day);
+                        if (date.getDay() === 0) dayCell.classList.add('sunday');
+                        else if (date.getDay() === 6) dayCell.classList.add('saturday');
+
+                        dayCell.innerHTML = `
+                            <span>${day}</span>
+                            <select class="assignment-select" data-day="${day - 1}">
+                                <option value="D" ${editedAssignments[day - 1] === 'D' ? 'selected' : ''}>Día</option>
+                                <option value="N" ${editedAssignments[day - 1] === 'N' ? 'selected' : ''}>Noche</option>
+                                <option value="L" ${editedAssignments[day - 1] === 'L' ? 'selected' : ''}>Libre</option>
+                                <option value="" ${!editedAssignments[day - 1] ? 'selected' : ''}>Ninguno</option>
+                                ${schedules.map(s => `<option value="${s.reference}" ${editedAssignments[day - 1] === s.reference ? 'selected' : ''}>${s.reference}</option>`).join('')}
+                            </select>
+                        `;
+                        calendarGrid.appendChild(dayCell);
+                    }
+
+                    calendar.appendChild(calendarGrid);
+                    editModal.style.display = 'flex';
+                } catch (error) {
+                    console.error('Error loading edit modal:', error);
+                    alert('Error al cargar el modal de edición: ' + error.message);
+                } finally {
+                    hideSpinner();
+                }
+            });
+        });
     }
 
     if (tableBody) {
@@ -430,17 +478,13 @@ export function initGenerador() {
                     const currentYear = parseInt(icon.dataset.year);
                     const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
                     if (!row) {
-                        console.error(`Fila no encontrada para rowId: ${rowId}`);
+                        console.error(`Row not found for rowId: ${rowId}`);
                         return;
                     }
-
-                    console.log(`Intento de eliminar colaborador para rowId: ${rowId}, mes: ${currentMonth}, año: ${currentYear}`);
 
                     if (confirm('¿Estás seguro de que deseas eliminar este colaborador y sus turnos?')) {
                         const monthYear = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
                         await deleteDoc(doc(db, `turns/${monthYear}/days`, rowId));
-                        console.log(`Documento eliminado para rowId ${rowId} en ${monthYear}`);
-
                         assignedCollaborators.delete(rowId);
 
                         const firstCell = row.querySelector('td:first-child');
@@ -452,17 +496,68 @@ export function initGenerador() {
                             cell.textContent = '';
                         });
 
-                        await updateFutureMonths(currentMonth, currentYear, rowId);
-
                         renderTableWithAssignments(currentMonth, currentYear);
                     }
                 } catch (error) {
-                    console.error('Error al eliminar colaborador:', error);
+                    console.error('Error deleting collaborator:', error);
                     alert('Error al eliminar colaborador: ' + error.message);
                 } finally {
                     hideSpinner();
                 }
             }
+        });
+    }
+
+    if (confirmEdit) {
+        confirmEdit.addEventListener('click', async () => {
+            showSpinner();
+            try {
+                console.log('Iniciando guardado de cambios...');
+                const assignmentSelects = calendar.querySelectorAll('.assignment-select');
+                const newAssignments = Array.from(assignmentSelects).map(select => select.value);
+
+                console.log('Nuevos turnos/horarios:', newAssignments);
+
+                const data = assignedCollaborators.get(editingRowId);
+                if (!data) {
+                    console.error('No data found for rowId:', editingRowId);
+                    alert('Error: No se encontraron datos para este colaborador.');
+                    return;
+                }
+
+                const updatedData = {
+                    ...data,
+                    dailyAssignments: newAssignments,
+                    timestamp: new Date().toISOString()
+                };
+
+                console.log('Datos actualizados:', updatedData);
+
+                const monthYear = `${yearSelect.value}-${monthSelect.value.padStart(2, '0')}`;
+                console.log('Guardando en Firestore en:', `turns/${monthYear}/days/${editingRowId}`);
+                await setDoc(doc(db, `turns/${monthYear}/days`, editingRowId), updatedData);
+                assignedCollaborators.set(editingRowId, updatedData);
+
+                console.log('Cambios guardados exitosamente.');
+
+                editModal.style.display = 'none';
+                editingRowId = null;
+                renderTableWithAssignments(parseInt(monthSelect.value), parseInt(yearSelect.value));
+            } catch (error) {
+                console.error('Error saving edited assignments:', error);
+                alert('Error al guardar los cambios: ' + error.message);
+            } finally {
+                hideSpinner();
+            }
+        });
+    }
+
+    if (cancelEdit) {
+        cancelEdit.addEventListener('click', () => {
+            editModal.style.display = 'none';
+            editingRowId = null;
+            calendar.innerHTML = '';
+            if (editScheduleSelect) editScheduleSelect.value = '';
         });
     }
 
@@ -599,7 +694,7 @@ export function initGenerador() {
             }
 
             if (typeof XLSX === 'undefined') {
-                console.error('Librería SheetJS (XLSX) no está cargada.');
+                console.error('SheetJS (XLSX) library not loaded.');
                 alert('Error: No se pudo cargar la librería de Excel. Por favor, intenta de nuevo.');
                 return;
             }
@@ -666,13 +761,13 @@ export function initGenerador() {
                 const fileName = `Turnos_${year}-${month.toString().padStart(2, '0')}.xlsx`;
                 XLSX.write(wb, fileName, { bookType: 'xlsx', type: 'binary' });
             } catch (error) {
-                console.error('Error al exportar a Excel:', error);
+                console.error('Error exporting to Excel:', error);
                 alert('Error al generar el archivo Excel: ' + error.message);
             }
         });
     }
 
-    async function loadTurns(month, year) {
+    async function loadTurns(month, year, generateNew = false) {
         showSpinner();
         try {
             await loadCollaborators();
@@ -689,7 +784,7 @@ export function initGenerador() {
                 tableHead.innerHTML = '';
                 return;
             }
-            await loadAssignments(month, year);
+            await loadAssignments(month, year, generateNew);
         } finally {
             hideSpinner();
         }
@@ -712,7 +807,7 @@ export function initGenerador() {
             }
 
             tableBody.innerHTML = '';
-            await loadTurns(selectedMonth, selectedYear);
+            await loadTurns(selectedMonth, selectedYear, true);
         });
     }
 
@@ -736,11 +831,11 @@ export function initGenerador() {
             if (monthSelect.value && yearSelect.value) {
                 showSpinner();
                 try {
-                    const selectedMonth = parseInt(monthSelect.value);
-                    const selectedYear = parseInt(yearSelect.value);
+                    const month = parseInt(monthSelect.value);
+                    const year = parseInt(yearSelect.value);
                     await loadCollaborators();
                     await loadTurnPatterns();
-                    await loadTurns(selectedMonth, selectedYear);
+                    await loadTurns(month, year);
                 } finally {
                     hideSpinner();
                 }
@@ -751,11 +846,11 @@ export function initGenerador() {
             if (monthSelect.value && yearSelect.value) {
                 showSpinner();
                 try {
-                    const selectedMonth = parseInt(monthSelect.value);
-                    const selectedYear = parseInt(yearSelect.value);
+                    const month = parseInt(monthSelect.value);
+                    const year = parseInt(yearSelect.value);
                     await loadCollaborators();
                     await loadTurnPatterns();
-                    await loadTurns(selectedMonth, selectedYear);
+                    await loadTurns(month, year);
                 } finally {
                     hideSpinner();
                 }
@@ -780,7 +875,7 @@ export function initGenerador() {
                     return;
                 }
                 if (turnPatterns.length === 0) {
-                    alert('No hay turnos definidos en la colección turnPatterns.');
+                    alert('No hay turnos disponibles en la colección turnPatterns.');
                     return;
                 }
                 await loadAssignments(currentMonth, 2025);
@@ -793,7 +888,7 @@ export function initGenerador() {
     if (confirmSelection) {
         confirmSelection.addEventListener('click', async () => {
             if (!currentRow || !(currentRow instanceof HTMLElement)) {
-                console.error('currentRow es null o no es un elemento válido del DOM:', currentRow);
+                console.error('currentRow es nulo o no es un elemento DOM válido:', currentRow);
                 alert('Error: No se ha seleccionado ninguna fila válida.');
                 modal.style.display = 'none';
                 return;
@@ -835,7 +930,8 @@ export function initGenerador() {
                     observation: selectedTurn.observation,
                     startDate: startDate,
                     patternStartIndex: parseInt(patternStartIndex),
-                    dailyAssignments: dailyAssignments
+                    dailyAssignments: dailyAssignments,
+                    timestamp: new Date().toISOString()
                 };
                 assignedCollaborators.set(rowId, data);
 
@@ -857,21 +953,18 @@ export function initGenerador() {
                         dailyAssignments: dailyAssignments,
                         timestamp: new Date().toISOString()
                     });
-                    console.log(`Asignación guardada para rowId ${rowId} en ${monthYear}`);
-
-                    await updateFutureMonths(parseInt(monthSelect.value), parseInt(yearSelect.value));
 
                     modal.style.display = 'none';
-                    collaboratorSelect.value = '';
-                    areaSelect.value = '';
-                    turnSelect.value = '';
+                    collaboratorSelect.innerHTML = '<option value="" disabled selected>Seleccionar colaborador</option>';
+                    areaSelect.innerHTML = '<option value="" disabled selected>Seleccionar área</option>';
+                    turnSelect.innerHTML = '<option value="" disabled selected>Seleccionar turno</option>';
                     startDateSelect.value = '';
                     patternStartSelect.innerHTML = '<option value="" disabled selected>Seleccionar inicio del patrón</option>';
                     currentRow = null;
 
                     await renderTableWithAssignments(parseInt(monthSelect.value), parseInt(yearSelect.value));
                 } catch (error) {
-                    console.error('Error al guardar turno:', error);
+                    console.error('Error al guardar turnos:', error);
                     alert('Error al asignar turno: ' + error.message);
                 } finally {
                     hideSpinner();
@@ -885,25 +978,25 @@ export function initGenerador() {
     if (cancelSelection) {
         cancelSelection.addEventListener('click', () => {
             modal.style.display = 'none';
-            collaboratorSelect.value = '';
-            areaSelect.value = '';
-            turnSelect.value = '';
+            collaboratorSelect.innerHTML = '<option value="" disabled selected>Seleccionar colaborador</option>';
+            areaSelect.innerHTML = '<option value="" disabled selected>Seleccionar área</option>';
+            turnSelect.innerHTML = '<option value="" disabled selected>Seleccionar turno</option>';
             startDateSelect.value = '';
-            patternStartSelect.innerHTML = '<option value="" disabled selected>Seleccionar inicio del patrón</option>';
+            patternStartSelect.innerHTML = '<option value="" disabled selected>Confirmar selección</option>';
             currentRow = null;
         });
     }
-}
 
-window.addEventListener('moduleCleanup', () => {
-    const turnForm = document.getElementById('turnForm');
-    const monthSelect = document.getElementById('month');
-    const yearSelect = document.getElementById('year');
-    const clearForm = document.getElementById('clearForm');
-    if (turnForm) turnForm.removeEventListener('submit', () => {});
-    if (monthSelect) monthSelect.removeEventListener('change', () => {});
-    if (yearSelect) yearSelect.removeEventListener('change', () => {});
-    if (clearForm) clearForm.removeEventListener('click', () => {});
-});
+    window.addEventListener('moduleCleanup', () => {
+        const turnForm = document.getElementById('turnForm');
+        const monthSelect = document.getElementById('month');
+        const yearSelect = document.getElementById('year');
+        const clearForm = document.getElementById('clearForm');
+        if (turnForm) turnForm.removeEventListener('submit', null);
+        if (monthSelect) monthSelect.removeEventListener('change', null);
+        if (yearSelect) yearSelect.removeEventListener('change', null);
+        if (clearForm) clearForm.removeEventListener('click', null);
+    });
+}
 
 initGenerador();
