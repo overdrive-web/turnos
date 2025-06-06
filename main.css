@@ -613,3 +613,113 @@ body.dark-mode .loader::after {
         overflow: hidden;
     }
 }
+
+@media (min-width: 769px) and (max-width: 1440px) {
+    .sidebar {
+        width: 250px;
+        min-width: 250px;
+        padding: 1.5rem;
+    }
+    .container {
+        height: calc(100vh - 40px);
+    }
+    .content {
+        padding: 1rem 2rem;
+        overflow-y: auto;
+    }
+    header {
+        padding: 0 1.5rem;
+    }
+    .header-container .logo {
+        width: 40px;
+        height: 40px;
+    }
+    .header-container .header-text {
+        font-size: 20px;
+    }
+    .header-container .header-date {
+        font-size: 15px;
+    }
+    .header-container .header-title {
+        font-size: 18px;
+    }
+    .header-container .notification-icon {
+        font-size: 20px;
+    }
+    .header-container #toggle-mode {
+        font-size: 20px;
+    }
+    .header-container .user-logo {
+        width: 40px;
+        height: 40px;
+    }
+    .header-container .user-name {
+        font-size: 15px;
+    }
+    .user-dropdown {
+        min-width: 180px;
+        right: 15px;
+    }
+    .dropdown-item {
+        font-size: 15px;
+        padding: 12px 18px;
+    }
+    .sidebar-container-1 {
+        height: 80px;
+        min-height: 80px;
+    }
+    .sidebar-container-2 {
+        height: 55%;
+        min-height: 250px;
+    }
+    .sidebar-container-3 {
+        height: 25%;
+        min-height: 120px;
+    }
+    .sidebar-container-4 {
+        height: 10%;
+        min-height: 60px;
+    }
+    .sidebar-title .sidebar-icon {
+        font-size: 20px;
+    }
+    .sidebar-title .sidebar-text {
+        font-size: 18px;
+    }
+    .sidebar-menu-item {
+        padding: 8px 12px;
+        margin-bottom: 12px;
+    }
+    .sidebar-menu-item .sidebar-text {
+        font-size: 15px;
+    }
+    .sidebar-menu-item .sidebar-icon {
+        font-size: 18px;
+    }
+    .modal-content {
+        max-width: 350px;
+        padding: 25px;
+    }
+    .modal-content p {
+        font-size: 17px;
+    }
+    .modal-buttons button {
+        padding: 10px 20px;
+        font-size: 15px;
+    }
+    .loading-content {
+        max-width: 320px;
+        padding: 25px;
+    }
+    .loading-text {
+        font-size: 17px;
+    }
+    .loader {
+        width: 52px;
+        height: 52px;
+    }
+    .loader::after {
+        width: 60px;
+        height: 60px;
+    }
+}
