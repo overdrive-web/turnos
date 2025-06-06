@@ -1,7 +1,9 @@
 <div class="content-container">
-    <div id="loadingSpinner" class="spinner-container">
-        <div class="spinner"></div>
-        <p>Procesando asignaciones...</p>
+    <div id="loadingSpinner" class="spinner-modal">
+        <div class="spinner-modal-content">
+            <div class="spinner"></div>
+            <p>Procesando asignaciones...</p>
+        </div>
     </div>
     <h2>Generador de Turnos</h2>
     <p>Genera turnos por área para los colaboradores según el mes seleccionado.</p>
@@ -88,6 +90,18 @@
             <div class="modal-buttons">
                 <button id="confirmSelection">Confirmar</button>
                 <button id="cancelSelection">Cancelar</button>
+            </div>
+        </div>
+    </div>
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h3 id="editModalTitle">Editar Turnos</h3>
+            <div class="calendar-container">
+                <div id="calendar"></div>
+            </div>
+            <div class="modal-buttons">
+                <button id="confirmEdit">Confirmar</button>
+                <button id="cancelEdit">Cancelar</button>
             </div>
         </div>
     </div>
