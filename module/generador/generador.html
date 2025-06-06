@@ -1,82 +1,108 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <title>Main - Turnos</title>
-    <link rel="stylesheet" href="main.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="icon" href="img/logo-empresa.png" type="image/jpeg">
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
-</head>
-<body class="dark-mode">
-    <header>
-        <div class="header-container">
-            <img src="img/logo-empresa.png" alt="Logo" class="logo">
-            <span class="header-text">Turnos</span>
-            <span class="header-date"></span>
+<div class="content-container">
+    <div id="loadingSpinner" class="spinner-modal">
+        <div class="spinner-modal-content">
+            <div class="spinner"></div>
+            <p>Procesando asignaciones...</p>
         </div>
-        <div class="header-container">
-            <span class="header-title">Panel de Control</span>
-        </div>
-        <div class="header-container">
-            <i class="fas fa-bell notification-icon"></i>
-            <button id="toggle-mode" title="Cambiar modo">
-                <i class="fas fa-sun"></i>
-            </button>
-            <img src="img/icono-otro.png" alt="User Logo" class="user-logo" id="userLogo">
-            <span class="user-name" id="userName">Usuario</span>
-            <div class="user-dropdown" id="userDropdown" style="display: none;">
-                <ul class="dropdown-menu">
-                    <li class="dropdown-item" data-action="personal-data">Datos Personales</li>
-                    <li class="dropdown-item" data-action="logout">Cerrar Sesión</li>
-                </ul>
-            </div>
-        </div>
-    </header>
-    <div class="container">
-        <nav class="sidebar">
-            <div class="sidebar-container sidebar-container-1">
-                <div class="sidebar-title">
-                    <i class="fas fa-th-large sidebar-icon"></i>
-                    <span class="sidebar-text">Módulos</span>
-                </div>
-            </div>
-            <div class="sidebar-container sidebar-container-2">
-                <ul class="sidebar-menu"></ul>
-            </div>
-            <div class="sidebar-container sidebar-container-3"></div>
-            <div class="sidebar-container sidebar-container-4">
-                <div class="sidebar-version">
-                    <p class="version-text">Versión 1.00.2</p>
-                    <p class="version-date">05-Junio-2025</p>
-                </div>
-            </div>
-        </nav>
-        <main class="content"></main>
     </div>
-    <div class="modal" id="logoutModal" style="display: none;">
+    <h2>Generador de Turnos</h2>
+    <p>Genera turnos por área para los colaboradores según el mes seleccionado.</p>
+    <div class="form-container">
+        <form id="turnForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="month">Mes</label>
+                    <select id="month" required>
+                        <option value="" disabled selected>Seleccionar mes</option>
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="year">Año</label>
+                    <select id="year" required>
+                        <option value="" disabled selected>Seleccionar año</option>
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                        <option value="2027">2027</option>
+                    </select>
+                </div>
+                <div class="form-buttons">
+                    <button type="submit" id="generateTurns">Generar Turnos</button>
+                    <button type="button" id="clearForm">Limpiar</button>
+                    <button type="button" id="printTable">PDF</button>
+                    <button type="button" id="exportExcel">Descargar Excel</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="table-container">
+        <h3>Turnos Generados</h3>
+        <table id="turnTable">
+            <thead>
+                <tr id="dayHeaders"></tr>
+                <tr id="areaHeaders"></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div id="modal" class="modal">
         <div class="modal-content">
-            <p>¿Estás seguro de que deseas cerrar sesión?</p>
+            <h3>Asignar Colaborador y Turno</h3>
+            <div class="form-group">
+                <label for="collaboratorSelect">Colaborador</label>
+                <select id="collaboratorSelect" required>
+                    <option value="" disabled selected>Seleccionar colaborador</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="areaSelect">Área</label>
+                <select id="areaSelect" required>
+                    <option value="" disabled selected>Seleccionar área</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="turnSelect">Turno</label>
+                <select id="turnSelect" required>
+                    <option value="" disabled selected>Seleccionar turno</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="startDateSelect">Fecha de Inicio</label>
+                <input type="date" id="startDateSelect" required>
+            </div>
+            <div class="form-group">
+                <label for="patternStartSelect">Inicio del Patrón</label>
+                <select id="patternStartSelect" required>
+                    <option value="" disabled selected>Seleccionar inicio del patrón</option>
+                </select>
+            </div>
             <div class="modal-buttons">
-                <button id="confirmLogout">Sí</button>
-                <button id="cancelLogout">No</button>
+                <button id="confirmSelection">Confirmar</button>
+                <button id="cancelSelection">Cancelar</button>
             </div>
         </div>
     </div>
-    <div class="loading-modal" id="loadingScreen">
-        <div class="loading-content">
-            <span class="loader"></span>
-            <p class="loading-text">Cargando aplicación</p>
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h3 id="editModalTitle">Editar Turnos</h3>
+            <div class="calendar-container">
+                <div id="calendar"></div>
+            </div>
+            <div class="modal-buttons">
+                <button id="confirmEdit">Confirmar</button>
+                <button id="cancelEdit">Cancelar</button>
+            </div>
         </div>
     </div>
-    <script type="module" src="main.js"></script>
-</body>
-</html>
+</div>
