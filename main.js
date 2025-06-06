@@ -64,15 +64,19 @@ function renderSidebarMenu() {
 async function loadContent(htmlFile, cssFile, jsFile) {
   try {
     if (!content) throw new Error('Elemento .content no encontrado');
+
+    // Disparar evento de limpieza para el módulo anterior
     const cleanupEvent = new CustomEvent('moduleCleanup');
     window.dispatchEvent(cleanupEvent);
 
+    // Limpiar contenido, estilos y scripts anteriores
     content.innerHTML = '';
     const existingStyles = document.querySelectorAll('style[data-submodule]');
     existingStyles.forEach(style => style.remove());
     const existingScripts = document.querySelectorAll('script[data-submodule]');
     existingScripts.forEach(script => script.remove());
 
+    // Cargar HTML y CSS
     const cachedHtml = localStorage.getItem(`cached_${htmlFile}`);
     const cachedCss = localStorage.getItem(`cached_${cssFile}`);
     let htmlContent, cssContent;
@@ -87,21 +91,27 @@ async function loadContent(htmlFile, cssFile, jsFile) {
     if (!cachedHtml) localStorage.setItem(`cached_${htmlFile}`, htmlContent);
     if (!cachedCss) localStorage.setItem(`cached_${cssFile}`, cssContent);
 
+    // Insertar el contenido HTML en el DOM
     content.innerHTML = htmlContent;
 
+    // Insertar el CSS en el DOM
     const style = document.createElement('style');
     style.setAttribute('data-submodule', htmlFile);
     style.textContent = cssContent;
     document.head.appendChild(style);
 
+    // Esperar a que el DOM esté completamente cargado
     await new Promise((resolve, reject) => {
       const maxAttempts = 100;
       let attempts = 0;
       const checkDOM = () => {
-        if (document.querySelector('.content-container') || content.innerHTML) {
+        // Verificar si los elementos clave del módulo están presentes
+        const contentContainer = document.querySelector('.content-container');
+        const editModal = document.getElementById('editModal'); // Asegurarnos de que el modal de edición esté presente
+        if (contentContainer && editModal) {
           resolve();
         } else if (attempts >= maxAttempts) {
-          reject(new Error('Timeout esperando el DOM'));
+          reject(new Error('Timeout esperando el DOM: No se encontraron los elementos clave'));
         } else {
           attempts++;
           setTimeout(checkDOM, 10);
@@ -110,16 +120,22 @@ async function loadContent(htmlFile, cssFile, jsFile) {
       checkDOM();
     });
 
+    // Cargar y ejecutar el script del módulo
     const script = document.createElement('script');
     script.setAttribute('data-submodule', htmlFile);
     script.type = 'module';
     const timestamp = new Date().getTime();
     script.src = `${jsFile}?t=${timestamp}`;
     script.onerror = (error) => {
+      console.error(`Error cargando el script ${jsFile}:`, error);
       content.innerHTML = `<h2>Error</h2><p>No se pudo cargar el script: ${error.message}</p>`;
+    };
+    script.onload = () => {
+      console.log(`Script ${jsFile} cargado y ejecutado correctamente.`);
     };
     document.body.appendChild(script);
   } catch (error) {
+    console.error('Error cargando contenido:', error);
     content.innerHTML = `<h2>Error</h2><p>No se pudo cargar el contenido: ${error.message}</p>`;
   }
 }
@@ -133,6 +149,10 @@ function initializeApp() {
     'module/generador/generador.js'
   ).then(() => {
     if (loadingScreen) loadingScreen.style.display = 'none';
+  }).catch(error => {
+    console.error('Error inicializando la aplicación:', error);
+    if (loadingScreen) loadingScreen.style.display = 'none';
+    content.innerHTML = `<h2>Error</h2><p>Error al inicializar la aplicación: ${error.message}</p>`;
   });
 }
 
