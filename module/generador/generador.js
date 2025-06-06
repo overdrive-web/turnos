@@ -102,6 +102,7 @@ export function initGenerador() {
                     description: doc.data().description
                 });
             });
+            console.log('Horarios cargados:', schedules);
         } catch (error) {
             console.error('Error loading schedules:', error);
             alert('Error al cargar horarios: ' + error.message);
@@ -408,11 +409,19 @@ export function initGenerador() {
                     return;
                 }
 
+                // Verificar si editModalTitle existe
+                const editModalTitle = document.getElementById('editModalTitle');
+                if (!editModalTitle) {
+                    console.error('El elemento con ID "editModalTitle" no se encontró en el DOM.');
+                    alert('Error: No se encontró el título del modal de edición.');
+                    return;
+                }
+
                 showSpinner();
                 try {
                     await loadSchedules();
                     const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-                    document.getElementById('editModalTitle').textContent = `Editar Turnos: ${data.collaborator.name} - ${monthNames[month - 1]} ${year}`;
+                    editModalTitle.textContent = `Editar Turnos: ${data.collaborator.name} - ${monthNames[month - 1]} ${year}`;
                     editedAssignments = [...(data.dailyAssignments || Array(getDaysInMonth(month, year)).fill(''))];
 
                     calendar.innerHTML = '';
