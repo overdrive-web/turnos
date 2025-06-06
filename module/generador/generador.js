@@ -149,14 +149,11 @@ export function initGenerador() {
             }
 
             const currentMonthYearValue = year * 12 + month;
-            let maxYear = year;
-            if (year === 2025 && month === 12) {
-                maxYear = 2026;
-            }
+            const maxYear = 2027;
 
             for (let y = year; y <= maxYear; y++) {
                 const startMonth = (y === year) ? month + 1 : 1;
-                const endMonth = (y === maxYear && y === 2025) ? 12 : 12;
+                const endMonth = 12;
                 for (let m = startMonth; m <= endMonth; m++) {
                     const monthYear = `${y}-${m.toString().padStart(2, '0')}`;
                     const monthYearValue = y * 12 + m;
@@ -173,39 +170,45 @@ export function initGenerador() {
                             }
                         } else {
                             for (const [rowId, data] of assignedCollaborators) {
-                                if (!existingDocs.has(rowId)) {
-                                    const daysInFutureMonth = getDaysInMonth(m, y);
-                                    const futureStartDate = `${y}-${m.toString().padStart(2, '0')}-01`;
-                                    const daysSinceStart = Math.floor(
-                                        (new Date(futureStartDate) - new Date(data.startDate)) / (1000 * 60 * 60 * 24)
-                                    );
-                                    const patternArray = data.pattern.split('-');
-                                    const patternStartIndex = (data.patternStartIndex + daysSinceStart) % patternArray.length;
-                                    const dailyAssignments = calculateDailyAssignments(
-                                        futureStartDate,
-                                        data.pattern,
-                                        patternStartIndex,
-                                        daysInFutureMonth,
-                                        y,
-                                        m
-                                    );
+                                const daysInFutureMonth = getDaysInMonth(m, y);
+                                const futureStartDate = `${y}-${m.toString().padStart(2, '0')}-01`;
+                                const startDateObj = new Date(data.startDate);
+                                const futureDateObj = new Date(futureStartDate);
+                                const daysSinceStart = Math.floor(
+                                    (futureDateObj - startDateObj) / (1000 * 60 * 60 * 24)
+                                );
 
-                                    await setDoc(doc(db, `turns/${monthYear}/days`, rowId), {
-                                        collaborator: data.collaborator,
-                                        area: data.area,
-                                        turnId: data.turnId,
-                                        turnNumber: data.turnNumber,
-                                        pattern: data.pattern,
-                                        observation: data.observation,
-                                        startDate: data.startDate,
-                                        patternStartIndex: data.patternStartIndex,
-                                        dailyAssignments: dailyAssignments,
-                                        timestamp: new Date().toISOString()
-                                    });
+                                const patternArray = data.pattern.split('-');
+                                let patternStartIndex = (data.patternStartIndex + daysSinceStart) % patternArray.length;
+                                if (patternStartIndex < 0) {
+                                    patternStartIndex += patternArray.length; 
                                 }
+
+                                const dailyAssignments = calculateDailyAssignments(
+                                    data.startDate,
+                                    data.pattern,
+                                    patternStartIndex,
+                                    daysInFutureMonth,
+                                    y,
+                                    m
+                                );
+
+                                await setDoc(doc(db, `turns/${monthYear}/days`, rowId), {
+                                    collaborator: data.collaborator,
+                                    area: data.area,
+                                    turnId: data.turnId,
+                                    turnNumber: data.turnNumber,
+                                    pattern: data.pattern,
+                                    observation: data.observation,
+                                    startDate: data.startDate,
+                                    patternStartIndex: patternStartIndex,
+                                    dailyAssignments: dailyAssignments,
+                                    timestamp: new Date().toISOString()
+                                });
+                                console.log(`Asignación guardada para rowId ${rowId} en ${monthYear}`);
                             }
-                            console.log(`Asignaciones propagadas a ${monthYear}:`, assignedCollaborators);
                         }
+                        console.log(`Asignaciones propagadas a ${monthYear}`);
                     } catch (error) {
                         console.error(`Error al propagar o eliminar asignaciones en ${monthYear}:`, error);
                     }
@@ -224,16 +227,18 @@ export function initGenerador() {
         const assignments = [];
         const patternArray = pattern.split('-');
         const start = new Date(startDate);
-        const startDay = start.getDate();
+        const currentDate = new Date(year, month - 1, 1);
         let patternIndex = parseInt(patternStartIndex);
 
         for (let day = 1; day <= daysInMonth; day++) {
-            if (day < startDay && start.getMonth() + 1 === month && start.getFullYear() === year) {
+            const currentDayDate = new Date(year, month - 1, day);
+            if (currentDayDate < start) {
                 assignments.push('');
             } else {
                 assignments.push(patternArray[patternIndex % patternArray.length]);
                 patternIndex++;
             }
+            console.log(`Día ${day}: Asignación = ${assignments[day-1]}, patternIndex = ${patternIndex}`);
         }
         return assignments;
     }
@@ -409,7 +414,7 @@ export function initGenerador() {
                 startDateSelect.min = `${yearSelect.value}-${monthSelect.value.padStart(2, '0')}-01`;
                 startDateSelect.max = `${yearSelect.value}-${monthSelect.value.padStart(2, '0')}-${getDaysInMonth(parseInt(monthSelect.value), parseInt(yearSelect.value)).toString().padStart(2, '0')}`;
 
-                modal.style.display = 'block';
+                modal.style.display = 'flex';
             });
         });
     }
@@ -461,7 +466,6 @@ export function initGenerador() {
         });
     }
 
-    // Generate PDF functionality
     if (printTable) {
         printTable.addEventListener('click', () => {
             if (!monthSelect.value || !yearSelect.value) {
@@ -481,7 +485,6 @@ export function initGenerador() {
                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
             ];
 
-            // Initialize jsPDF
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF({
                 orientation: 'landscape',
@@ -489,11 +492,9 @@ export function initGenerador() {
                 format: 'a4'
             });
 
-            // Add title
             doc.setFontSize(14);
             doc.text(`Turnos - ${monthNames[month - 1]} ${year}`, 148.5, 10, { align: 'center' });
 
-            // Prepare table data
             const headers = [['Colaborador']];
             const dayNames = [['']];
             const dayInitials = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
@@ -536,13 +537,11 @@ export function initGenerador() {
                 }
             });
 
-            // Calculate scaling factor to fit all rows in one page
             const rowHeight = 5;
             const totalHeight = (totalRows + 2) * rowHeight;
             const pageHeight = 190;
             const scaleFactor = totalHeight > pageHeight ? pageHeight / totalHeight : 1;
 
-            // Add table in a single page
             doc.autoTable({
                 head: [headers[0], dayNames[0]],
                 body: body,
@@ -582,14 +581,12 @@ export function initGenerador() {
                 }
             });
 
-            // Generate PDF and open in new tab
             const pdfBlob = doc.output('blob');
             const pdfUrl = URL.createObjectURL(pdfBlob);
             window.open(pdfUrl, '_blank');
         });
     }
 
-    // Export to Excel functionality
     if (exportExcel) {
         exportExcel.addEventListener('click', () => {
             if (!monthSelect.value || !yearSelect.value) {
@@ -617,7 +614,6 @@ export function initGenerador() {
                     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
                 ];
 
-                // Prepare data for Excel
                 const wsData = [];
                 wsData.push([`Turnos - ${monthNames[month - 1]} ${year}`]);
                 wsData.push([]);
@@ -657,7 +653,6 @@ export function initGenerador() {
                     wsData.push([]);
                 });
 
-                // Create worksheet
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
                 const colWidths = [
                     { wch: 20 },
@@ -665,11 +660,9 @@ export function initGenerador() {
                 ];
                 ws['!cols'] = colWidths;
 
-                // Create workbook
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, `${monthNames[month - 1]} ${year}`);
 
-                // Download Excel file
                 const fileName = `Turnos_${year}-${month.toString().padStart(2, '0')}.xlsx`;
                 XLSX.write(wb, fileName, { bookType: 'xlsx', type: 'binary' });
             } catch (error) {
@@ -680,7 +673,7 @@ export function initGenerador() {
     }
 
     async function loadTurns(month, year) {
-        showSpinner(); // Mostrar spinner al inicio de la carga
+        showSpinner();
         try {
             await loadCollaborators();
             await loadTurnPatterns();
@@ -698,7 +691,7 @@ export function initGenerador() {
             }
             await loadAssignments(month, year);
         } finally {
-            hideSpinner(); // Ocultar spinner al finalizar, incluso si hay error
+            hideSpinner();
         }
     }
 
@@ -741,7 +734,7 @@ export function initGenerador() {
 
         monthSelect.addEventListener('change', async () => {
             if (monthSelect.value && yearSelect.value) {
-                showSpinner(); // Mostrar spinner al cambiar mes
+                showSpinner();
                 try {
                     const selectedMonth = parseInt(monthSelect.value);
                     const selectedYear = parseInt(yearSelect.value);
@@ -749,14 +742,14 @@ export function initGenerador() {
                     await loadTurnPatterns();
                     await loadTurns(selectedMonth, selectedYear);
                 } finally {
-                    hideSpinner(); // Ocultar spinner al finalizar
+                    hideSpinner();
                 }
             }
         });
 
         yearSelect.addEventListener('change', async () => {
             if (monthSelect.value && yearSelect.value) {
-                showSpinner(); // Mostrar spinner al cambiar año
+                showSpinner();
                 try {
                     const selectedMonth = parseInt(monthSelect.value);
                     const selectedYear = parseInt(yearSelect.value);
@@ -764,7 +757,7 @@ export function initGenerador() {
                     await loadTurnPatterns();
                     await loadTurns(selectedMonth, selectedYear);
                 } finally {
-                    hideSpinner(); // Ocultar spinner al finalizar
+                    hideSpinner();
                 }
             }
         });
@@ -778,7 +771,7 @@ export function initGenerador() {
         monthSelect.value = currentMonth;
         yearSelect.value = '2025';
         (async () => {
-            showSpinner(); // Mostrar spinner al cargar inicialmente
+            showSpinner();
             try {
                 await loadCollaborators();
                 await loadTurnPatterns();
@@ -792,7 +785,7 @@ export function initGenerador() {
                 }
                 await loadAssignments(currentMonth, 2025);
             } finally {
-                hideSpinner(); // Ocultar spinner al finalizar
+                hideSpinner();
             }
         })();
     }
@@ -827,7 +820,7 @@ export function initGenerador() {
                 const dailyAssignments = calculateDailyAssignments(
                     startDate,
                     selectedTurn.pattern,
-                    patternStartIndex,
+                    parseInt(patternStartIndex),
                     getDaysInMonth(parseInt(monthSelect.value), parseInt(yearSelect.value)),
                     parseInt(yearSelect.value),
                     parseInt(monthSelect.value)
@@ -864,7 +857,10 @@ export function initGenerador() {
                         dailyAssignments: dailyAssignments,
                         timestamp: new Date().toISOString()
                     });
+                    console.log(`Asignación guardada para rowId ${rowId} en ${monthYear}`);
+
                     await updateFutureMonths(parseInt(monthSelect.value), parseInt(yearSelect.value));
+
                     modal.style.display = 'none';
                     collaboratorSelect.value = '';
                     areaSelect.value = '';
